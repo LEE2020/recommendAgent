@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from strategies.strateges import BaseStrategy, HotStrategy, TagMatchStrategy, SimpleCFStrategy
+from strategies.strateges import BaseStrategy, HotStrategy, TagMatchStrategy, SimpleCFStrategy,llmStrategy
 from strategies.strategy_combiner import StrategyCombiner, MultiSceneStrategyCombiner
 from agent.epsilon_greedy_agent import EpsilonGreedyAgent
 import random
@@ -27,12 +27,15 @@ num_rounds = 200
 for round_idx in range(num_rounds):
     user = users.sample(1).iloc[0]
     scene = random.choice(scenes)
+    # 增加冷启动逻辑
+    if len(user['history_clicks']) == 0:
+        llmStrategy.handle_cold_start(user, items)
+    else:
+        agent = agents[scene]
+        strategy_idx = agent.select_strategy()
+        strategy = strategies[strategy_idx]
     
-    agent = agents[scene]
-    strategy_idx = agent.select_strategy()
-    strategy = strategies[strategy_idx]
-    
-    recs = multi_combiner.recommend(scene, user, items, k=5)
+        recs = multi_combiner.recommend(scene, user, items, k=5)
     # 计算 reward，假设 reward = CTR
     clicks = sum(simulate_click(user, recs.iloc[i]) for i in range(len(recs)))
     reward = clicks / len(recs)
